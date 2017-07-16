@@ -15,7 +15,7 @@ using System.Globalization;
 
 namespace Jackett.Indexers
 {
-    public class Superbits : BaseIndexer, IIndexer
+    public class Superbits : BaseWebIndexer
     {
         private string SearchUrl { get { return SiteLink + "api/v1/torrents"; } }
         private string LoginUrl { get { return SiteLink + "api/v1/auth"; } }
@@ -26,12 +26,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public Superbits(IIndexerManagerService i, Logger l, IWebClient w, IProtectionService ps)
+        public Superbits(IIndexerConfigurationService configService, IWebClient w, Logger l, IProtectionService ps)
             : base(name: "Superbits",
                 description: null,
                 link: "https://superbits.org/",
                 caps: new TorznabCapabilities(),
-                manager: i,
+                configService: configService,
                 client: w,
                 logger: l,
                 p: ps,
@@ -67,7 +67,7 @@ namespace Jackett.Indexers
             AddCategoryMapping(22, TorznabCatType.XXX, "XXX");
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var queryCollection = new NameValueCollection();
@@ -85,7 +85,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             List<ReleaseInfo> releases = new List<ReleaseInfo>();
             var queryCollection = new NameValueCollection();
@@ -109,10 +109,9 @@ namespace Jackett.Indexers
             queryCollection.Add("swesub", "false");
             queryCollection.Add("watchview", "false");
 
-            foreach (var cat in MapTorznabCapsToTrackers(query))
-                queryCollection.Add("categories[]", cat);
-
             searchUrl += "?" + queryCollection.GetQueryString();
+            foreach (var cat in MapTorznabCapsToTrackers(query))
+                searchUrl += "&categories[]=" + cat;
             var results = await RequestStringWithCookies(searchUrl, null, SiteLink);
 
             try

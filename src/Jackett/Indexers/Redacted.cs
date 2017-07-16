@@ -6,13 +6,13 @@ using Jackett.Indexers.Abstract;
 
 namespace Jackett.Indexers
 {
-    public class PassTheHeadphones : GazelleTracker, IIndexer
+    public class PassTheHeadphones : GazelleTracker
     {
-        public PassTheHeadphones(IIndexerManagerService indexerManager, IWebClient webClient, Logger logger, IProtectionService protectionService)
+        public PassTheHeadphones(IIndexerConfigurationService configService, IWebClient webClient, Logger logger, IProtectionService protectionService)
             : base(name: "Redacted",
                 desc: "A music tracker",
                 link: "https://redacted.ch/",
-                indexerManager: indexerManager,
+                configService: configService,
                 logger: logger,
                 protectionService: protectionService,
                 webClient: webClient

@@ -17,7 +17,7 @@ using System.IO;
 
 namespace Jackett.Indexers
 {
-    public class DigitalHive : BaseIndexer, IIndexer
+    public class DigitalHive : BaseWebIndexer
     {
         private string SearchUrl { get { return SiteLink + "browse.php"; } }
         private string LoginUrl { get { return SiteLink + "login.php?returnto=%2F"; } }
@@ -29,12 +29,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public DigitalHive(IIndexerManagerService i, Logger l, IWebClient w, IProtectionService ps)
+        public DigitalHive(IIndexerConfigurationService configService, IWebClient w, Logger l, IProtectionService ps)
             : base(name: "DigitalHive",
                 description: "DigitalHive is one of the oldest general trackers",
                 link: "https://www.digitalhive.org/",
                 caps: new TorznabCapabilities(),
-                manager: i,
+                configService: configService,
                 client: w,
                 logger: l,
                 p: ps,
@@ -101,7 +101,7 @@ namespace Jackett.Indexers
             return result;
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var pairs = new Dictionary<string, string> {
@@ -145,7 +145,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             List<ReleaseInfo> releases = new List<ReleaseInfo>();
 

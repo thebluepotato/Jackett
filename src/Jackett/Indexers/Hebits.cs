@@ -16,7 +16,7 @@ using System.Text;
 
 namespace Jackett.Indexers
 {
-    public class Hebits : BaseIndexer, IIndexer
+    public class Hebits : BaseWebIndexer
     {
         private string LoginUrl { get { return SiteLink + "login.php"; } }
         private string LoginPostUrl { get { return SiteLink + "takeloginAjax.php"; } }
@@ -28,12 +28,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public Hebits(IIndexerManagerService i, Logger l, IWebClient wc, IProtectionService ps)
+        public Hebits(IIndexerConfigurationService configService, IWebClient wc, Logger l, IProtectionService ps)
             : base(name: "Hebits",
                 description: "The Israeli Tracker",
                 link: "https://hebits.net/",
                 caps: TorznabUtil.CreateDefaultTorznabTVCaps(),
-                manager: i,
+                configService: configService,
                 client: wc,
                 logger: l,
                 p: ps,
@@ -56,7 +56,7 @@ namespace Jackett.Indexers
             AddCategoryMapping(37, TorznabCatType.TVHD); // Israel HDTV
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var pairs = new Dictionary<string, string> {
@@ -77,7 +77,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var searchString = query.GetQueryString();

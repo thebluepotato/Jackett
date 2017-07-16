@@ -19,7 +19,7 @@ using Jackett.Utils;
 
 namespace Jackett.Indexers
 {
-    public class MoreThanTV : BaseIndexer, IIndexer
+    public class MoreThanTV : BaseWebIndexer
     {
         private string LoginUrl => SiteLink + "login.php";
         private string SearchUrl => SiteLink + "ajax.php?action=browse&searchstr=";
@@ -28,13 +28,13 @@ namespace Jackett.Indexers
 
         private ConfigurationDataBasicLogin ConfigData => (ConfigurationDataBasicLogin) configData;
 
-        public MoreThanTV(IIndexerManagerService i, IWebClient c, Logger l, IProtectionService ps)
+        public MoreThanTV(IIndexerConfigurationService configService, IWebClient c, Logger l, IProtectionService ps)
             : base(name: "MoreThanTV",
                 description: "ROMANIAN Private Torrent Tracker for TV / MOVIES, and the internal tracker for the release group DRACULA.",
                 link: "https://www.morethan.tv/",
                 caps: new TorznabCapabilities(TorznabCatType.TV,
                                               TorznabCatType.Movies),
-                manager: i,
+                configService: configService,
                 client: c,
                 logger: l,
                 p: ps,
@@ -45,7 +45,7 @@ namespace Jackett.Indexers
             Type = "private";
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var pairs = new Dictionary<string, string> {
@@ -69,7 +69,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var isTv = TorznabCatType.QueryContainsParentCategory(query.Categories, new List<int> { TorznabCatType.TV.ID });
             var releases = new List<ReleaseInfo>();
@@ -78,16 +78,13 @@ namespace Jackett.Indexers
 
             await GetReleases(releases, query, searchQuerySingleEpisodes);
 
-            // Search for torrent groups
-            if (isTv)
+            // Search for torrent groups (complete seasons)
+            var seasonMatch = new Regex(@".*\s[Ss]{1}\d{2}$").Match(query.GetQueryString());
+            if (seasonMatch.Success)
             {
-                var seasonMatch = new Regex(@".*\s[Ss]{1}\d{2}").Match(query.GetQueryString());
-                if (seasonMatch.Success)
-                {
-                    var newSearchQuery = Regex.Replace(searchQuery, @"[Ss]{1}\d{2}", $"Season {query.Season}");
+                var newSearchQuery = Regex.Replace(searchQuery, @"[Ss]{1}\d{2}", $"Season {query.Season}");
 
-                    await GetReleases(releases, query, newSearchQuery);
-                }
+                await GetReleases(releases, query, newSearchQuery);
             }
 
             return releases;

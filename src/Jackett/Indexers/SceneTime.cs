@@ -15,7 +15,7 @@ using System.Text.RegularExpressions;
 
 namespace Jackett.Indexers
 {
-    public class SceneTime : BaseIndexer, IIndexer
+    public class SceneTime : BaseWebIndexer
     {
         private string StartPageUrl { get { return SiteLink + "login.php"; } }
         private string LoginUrl { get { return SiteLink + "takelogin.php"; } }
@@ -28,12 +28,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public SceneTime(IIndexerManagerService i, Logger l, IWebClient w, IProtectionService ps)
+        public SceneTime(IIndexerConfigurationService configService, IWebClient w, Logger l, IProtectionService ps)
             : base(name: "SceneTime",
                 description: "Always on time",
                 link: "https://www.scenetime.com/",
                 caps: new TorznabCapabilities(),
-                manager: i,
+                configService: configService,
                 client: w,
                 logger: l,
                 p: ps,
@@ -108,7 +108,7 @@ namespace Jackett.Indexers
             }
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var pairs = new Dictionary<string, string> {
@@ -151,7 +151,7 @@ namespace Jackett.Indexers
         }
 
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             Dictionary<string, string> qParams = new Dictionary<string, string>();
             qParams.Add("cata", "yes");

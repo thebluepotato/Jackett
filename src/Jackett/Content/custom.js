@@ -62,6 +62,7 @@ function loadJackettSettings() {
         $("#jackett-allowupdate").attr('checked', data.config.updatedisabled);
         $("#jackett-prerelease").attr('checked', data.config.prerelease);
         $("#jackett-logging").attr('checked', data.config.logging);
+        $("#jackett-omdbkey").val(data.config.omdbkey);
         var password = data.config.password;
         $("#jackett-adminpwd").val(password);
         if (password != null && password != '') {
@@ -526,6 +527,9 @@ function getConfigModalJson(configForm) {
                 break;
             case "inputbool":
                 itemEntry.value = $el.find(".setup-item-inputbool input").is(":checked");
+                break;
+            case "inputselect":
+                itemEntry.value = $el.find(".setup-item-inputselect select").val();
                 break;
             case "recaptcha":
                 if (window.jackettIsLocal) {
@@ -1032,6 +1036,7 @@ function bindUIButtons() {
         var jackett_update = $("#jackett-allowupdate").is(':checked'); 
         var jackett_prerelease = $("#jackett-prerelease").is(':checked'); 
         var jackett_logging = $("#jackett-logging").is(':checked');
+        var jackett_omdb_key = $("#jackett-omdbkey").val();
         var jsonObject = {
             port: jackett_port,
             external: jackett_external,
@@ -1039,7 +1044,8 @@ function bindUIButtons() {
             prerelease: jackett_prerelease,
             blackholedir: $("#jackett-savedir").val(),
             logging: jackett_logging,
-            basepathoverride: jackett_basepathoverride
+            basepathoverride: jackett_basepathoverride,
+            omdbkey: jackett_omdb_key
         };
         var jqxhr = $.post("set_config", JSON.stringify(jsonObject), function (data) {
             if (data.result == "error") {

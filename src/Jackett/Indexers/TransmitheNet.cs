@@ -16,7 +16,7 @@ using System.Text.RegularExpressions;
 
 namespace Jackett.Indexers
 {
-    public class TransmitheNet : BaseIndexer, IIndexer
+    public class TransmitheNet : BaseWebIndexer
     {
         private string LoginUrl { get { return SiteLink + "login.php"; } }
         private string SearchUrl { get { return SiteLink + "torrents.php?action=basic&order_by=time&order_way=desc&search_type=0&taglist=&tags_type=0"; } }
@@ -27,12 +27,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public TransmitheNet(IIndexerManagerService i, Logger l, IWebClient c, IProtectionService ps)
+        public TransmitheNet(IIndexerConfigurationService configService, IWebClient c, Logger l, IProtectionService ps)
             : base(name: "Nebulance",
                 description: " At Nebulance we will change the way you think about TV",
                 link: "https://nebulance.io/",
                 caps: TorznabUtil.CreateDefaultTorznabTVCaps(),
-                manager: i,
+                configService: configService,
                 client: c,
                 logger: l,
                 p: ps,
@@ -43,7 +43,7 @@ namespace Jackett.Indexers
             Type = "private";
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             await DoLogin();
@@ -74,7 +74,7 @@ namespace Jackett.Indexers
             });
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var loggedInCheck = await RequestStringWithCookies(SearchUrl);
             if (!loggedInCheck.Content.Contains("logout.php"))

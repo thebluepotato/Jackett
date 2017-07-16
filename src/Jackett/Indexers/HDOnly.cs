@@ -9,13 +9,13 @@ using System.Web;
 
 namespace Jackett.Indexers
 {
-    public class HDOnly : GazelleTracker, IIndexer
+    public class HDOnly : GazelleTracker
     {
-        public HDOnly(IIndexerManagerService indexerManager, IWebClient webClient, Logger logger, IProtectionService protectionService)
+        public HDOnly(IIndexerConfigurationService configService, IWebClient webClient, Logger logger, IProtectionService protectionService)
             : base(name: "HD-Only",
                 desc: null,
                 link: "https://hd-only.org/",
-                indexerManager: indexerManager,
+                configService: configService,
                 logger: logger,
                 protectionService: protectionService,
                 webClient: webClient

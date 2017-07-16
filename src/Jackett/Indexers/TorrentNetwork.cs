@@ -15,7 +15,7 @@ using System.Text;
 
 namespace Jackett.Indexers
 {
-    public class TorrentNetwork : BaseIndexer, IIndexer
+    public class TorrentNetwork : BaseWebIndexer
     {
         string LoginUrl { get { return SiteLink + "takelogin.php"; } }
         string BrowseUrl { get { return SiteLink + "browse.php"; } }
@@ -26,12 +26,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public TorrentNetwork(IIndexerManagerService i, IWebClient wc, Logger l, IProtectionService ps)
+        public TorrentNetwork(IIndexerConfigurationService configService, IWebClient wc, Logger l, IProtectionService ps)
             : base(name: "Torrent Network",
                    description: "A German general tracker.",
                    link: "https://tntracker.org/",
                    caps: TorznabUtil.CreateDefaultTorznabTVCaps(),
-                   manager: i,
+                   configService: configService,
                    client: wc,
                    logger: l,
                    p: ps,
@@ -83,7 +83,7 @@ namespace Jackett.Indexers
             AddCategoryMapping(32, TorznabCatType.XXX); // XXX|SD
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
 
@@ -104,7 +104,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             TimeZoneInfo.TransitionTime startTransition = TimeZoneInfo.TransitionTime.CreateFloatingDateRule(new DateTime(1, 1, 1, 3, 0, 0), 3, 5, DayOfWeek.Sunday);
             TimeZoneInfo.TransitionTime endTransition = TimeZoneInfo.TransitionTime.CreateFloatingDateRule(new DateTime(1, 1, 1, 4, 0, 0), 10, 5, DayOfWeek.Sunday);

@@ -20,7 +20,7 @@ using System.Xml.Linq;
 
 namespace Jackett.Indexers
 {
-    public class RevolutionTT : BaseIndexer, IIndexer
+    public class RevolutionTT : BaseWebIndexer
     {        
         private string LandingPageURL { get { return SiteLink + "login.php"; } }
         private string LoginUrl { get { return SiteLink + "takelogin.php"; } }
@@ -36,12 +36,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public RevolutionTT(IIndexerManagerService i, Logger l, IWebClient wc, IProtectionService ps)
+        public RevolutionTT(IIndexerConfigurationService configService, IWebClient wc, Logger l, IProtectionService ps)
             : base(name: "RevolutionTT",
                 description: "The Revolution has begun",
                 link: "https://revolutiontt.me/",
                 caps: TorznabUtil.CreateDefaultTorznabTVCaps(),
-                manager: i,
+                configService: configService,
                 client: wc,
                 logger: l,
                 p: ps,
@@ -186,7 +186,7 @@ namespace Jackett.Indexers
             AddCategoryMapping("TV/XViD", TorznabCatType.TVSD);
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
 
@@ -230,7 +230,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var searchString = query.GetQueryString();
@@ -245,6 +245,8 @@ namespace Jackett.Indexers
                 foreach (var item in rssDoc.Descendants("item"))
                 {
                     var title = item.Descendants("title").First().Value;
+                    if (title.StartsWith("Support YOUR site!"))
+                        continue;
                     var description = item.Descendants("description").First().Value;
                     var link = item.Descendants("link").First().Value;
                     var date = item.Descendants("pubDate").First().Value;
@@ -333,23 +335,24 @@ namespace Jackett.Indexers
                         release.Title = qLink.Find("b").Text();
                         release.Description = release.Title;
 
-                        release.Link = new Uri(SiteLink + qRow.Find("td:nth-child(4) > a").Attr("href"));
+                        var releaseLinkURI = qRow.Find("td:nth-child(4) > a").Attr("href");
+                        release.Link = new Uri(SiteLink + releaseLinkURI);
+                        if (releaseLinkURI != null){
+                            var dateString = qRow.Find("td:nth-child(6) nobr")[0].TextContent.Trim();
+                            //"2015-04-25 23:38:12"
+                            //"yyyy-MMM-dd hh:mm:ss"
+                            release.PublishDate = DateTime.ParseExact(dateString, "yyyy-MM-ddHH:mm:ss", CultureInfo.InvariantCulture);
 
-                        var dateString = qRow.Find("td:nth-child(6) nobr")[0].TextContent.Trim();
-                        //"2015-04-25 23:38:12"
-                        //"yyyy-MMM-dd hh:mm:ss"
-                        release.PublishDate = DateTime.ParseExact(dateString, "yyyy-MM-ddHH:mm:ss", CultureInfo.InvariantCulture);
+                            var sizeStr = qRow.Children().ElementAt(6).InnerHTML.Trim();
+                            sizeStr = sizeStr.Substring(0, sizeStr.IndexOf('<'));
+                            release.Size = ReleaseInfo.GetBytes(sizeStr);
 
-                        var sizeStr = qRow.Children().ElementAt(6).InnerHTML.Trim();
-                        sizeStr = sizeStr.Substring(0, sizeStr.IndexOf('<'));
-                        release.Size = ReleaseInfo.GetBytes(sizeStr);
+                            release.Seeders = ParseUtil.CoerceInt(qRow.Find("td:nth-child(9)").Text());
+                            release.Peers = release.Seeders + ParseUtil.CoerceInt(qRow.Find("td:nth-child(10)").Text());
 
-                        release.Seeders = ParseUtil.CoerceInt(qRow.Find("td:nth-child(9)").Text());
-                        release.Peers = release.Seeders + ParseUtil.CoerceInt(qRow.Find("td:nth-child(10)").Text());
-
-                        var category = qRow.Find(".br_type > a").Attr("href").Replace("browse.php?cat=", string.Empty);
-                        release.Category = MapTrackerCatToNewznab(category);
-
+                            var category = qRow.Find(".br_type > a").Attr("href").Replace("browse.php?cat=", string.Empty);
+                            release.Category = MapTrackerCatToNewznab(category);
+                        }
                         releases.Add(release);
                     }
                 }

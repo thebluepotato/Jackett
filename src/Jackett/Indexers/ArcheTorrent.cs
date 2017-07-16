@@ -18,7 +18,7 @@ using Jackett.Utils.Clients;
 
 namespace Jackett.Indexers
 {
-    class ArcheTorrent : BaseIndexer, IIndexer
+    class ArcheTorrent : BaseWebIndexer
     {
         string LoginUrl { get { return SiteLink + "account-login.php"; } }
         string BrowseUrl { get { return SiteLink + "torrents-search.php"; } }
@@ -30,11 +30,11 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public ArcheTorrent(IIndexerManagerService indexerManager, IWebClient webClient, Logger logger, IProtectionService protectionService)
+        public ArcheTorrent(IIndexerConfigurationService configService, IWebClient webClient, Logger logger, IProtectionService protectionService)
             : base(name: "Arche Torrent",
                 description: "French Torrent Tracker",
                 link: "https://www.archetorrent.com/",
-                manager: indexerManager,
+                configService: configService,
                 logger: logger,
                 p: protectionService,
                 client: webClient,
@@ -98,7 +98,7 @@ namespace Jackett.Indexers
             AddCategoryMapping (61, TorznabCatType.TVSD, "Tv: DVDRip");
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             configData.LoadValuesFromJson(configJson);
 
@@ -119,16 +119,24 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var searchString = query.GetQueryString();
 
+            var arraySearchString = searchString.Split(' ');
+            searchString = "";
+            foreach (var subSearchString in arraySearchString) 
+            {
+                searchString += "+" + subSearchString + " ";
+            }
+            searchString = searchString.Trim ();
+
             var queryCollection = new Dictionary<string, string>();
             queryCollection.Add ("search", searchString);
             queryCollection.Add ("cat", "0");
-            queryCollection.Add("incldead", "0");
-            queryCollection.Add("freeleech", "0");
+            queryCollection.Add ("incldead", "0");
+            queryCollection.Add ("freeleech", "0");
             queryCollection.Add ("lang", "0");
 
             var searchUrl = BrowseUrl + "?" + queryCollection.GetQueryString ();

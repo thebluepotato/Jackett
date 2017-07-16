@@ -18,7 +18,7 @@ using System.Collections.Specialized;
 
 namespace Jackett.Indexers
 {
-    public class HDSpace : BaseIndexer, IIndexer
+    public class HDSpace : BaseWebIndexer
     {
         private string LoginUrl { get { return SiteLink + "index.php?page=login"; } }
         private string SearchUrl { get { return SiteLink + "index.php?page=torrents&"; } }
@@ -29,12 +29,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public HDSpace(IIndexerManagerService i, IWebClient wc, Logger l, IProtectionService ps)
+        public HDSpace(IIndexerConfigurationService configService, IWebClient wc, Logger l, IProtectionService ps)
             : base(name: "HD-Space",
                 description: "Sharing The Universe",
                 link: "https://hd-space.org/",
                 caps: TorznabUtil.CreateDefaultTorznabTVCaps(),
-                manager: i,
+                configService: configService,
                 client: wc,
                 logger: l,
                 p: ps,
@@ -75,7 +75,7 @@ namespace Jackett.Indexers
             AddCategoryMapping("38", TorznabCatType.Other);
          }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
 
@@ -100,7 +100,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
 

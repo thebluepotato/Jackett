@@ -19,7 +19,7 @@ using static Jackett.Models.IndexerConfig.ConfigurationData;
 
 namespace Jackett.Indexers
 {
-    public class XSpeeds : BaseIndexer, IIndexer
+    public class XSpeeds : BaseWebIndexer
     {
         string LandingUrl => SiteLink + "login.php";
         string LoginUrl => SiteLink + "takelogin.php";
@@ -35,12 +35,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public XSpeeds(IIndexerManagerService i, IWebClient wc, Logger l, IProtectionService ps)
+        public XSpeeds(IIndexerConfigurationService configService, IWebClient wc, Logger l, IProtectionService ps)
             : base(name: "XSpeeds",
                 description: "XSpeeds",
                 link: "https://www.xspeeds.eu/",
                 caps: TorznabUtil.CreateDefaultTorznabTVCaps(),
-                manager: i,
+                configService: configService,
                 client: wc,
                 logger: l,
                 p: ps,
@@ -154,7 +154,7 @@ namespace Jackett.Indexers
             return configData;
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
 
@@ -204,7 +204,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var searchString = query.GetQueryString();

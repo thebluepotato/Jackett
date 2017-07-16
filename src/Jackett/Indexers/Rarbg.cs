@@ -16,7 +16,7 @@ using System.Web;
 
 namespace Jackett.Indexers
 {
-    public class Rarbg : BaseIndexer, IIndexer
+    public class Rarbg : BaseWebIndexer
     {
         readonly static string defaultSiteLink = "https://torrentapi.org/";
 
@@ -41,12 +41,12 @@ namespace Jackett.Indexers
 
         private bool HasValidToken { get { return !string.IsNullOrEmpty(token) && lastTokenFetch > DateTime.Now - TOKEN_DURATION; } }
 
-        public Rarbg(IIndexerManagerService i, IWebClient wc, Logger l, IProtectionService ps)
+        public Rarbg(IIndexerConfigurationService configService, IWebClient wc, Logger l, IProtectionService ps)
             : base(name: "RARBG",
                 description: null,
                 link: "https://rarbg.to/",
                 caps: new TorznabCapabilities(),
-                manager: i,
+                configService: configService,
                 client: wc,
                 logger: l,
                 p: ps,
@@ -58,7 +58,7 @@ namespace Jackett.Indexers
 
             TorznabCaps.SupportsImdbSearch = true;
 
-            webclient.requestDelay = 2; // 0.5 requests per second
+            webclient.requestDelay = 2.5; // 0.5 requests per second (2 causes problems)
 
             AddCategoryMapping(4, TorznabCatType.XXX, "XXX (18+)");
             AddCategoryMapping(14, TorznabCatType.MoviesSD, "Movies/XVID");
@@ -98,7 +98,7 @@ namespace Jackett.Indexers
             }
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             configData.LoadValuesFromJson(configJson);
             var releases = await PerformQuery(new TorznabQuery());
@@ -111,12 +111,12 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.Completed;
         }
 
-        public Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
-            return PerformQuery(query, 0);
+            return await PerformQuery(query, 0);
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query, int attempts = 0)
+        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query, int attempts)
         {
             await CheckToken();
             var releases = new List<ReleaseInfo>();
@@ -146,6 +146,7 @@ namespace Jackett.Indexers
             }*/
             else if (!string.IsNullOrWhiteSpace(searchString))
             {
+                searchString = searchString.Replace("'", ""); // ignore ' (e.g. search for america's Next Top Model)
                 queryCollection.Add("mode", "search");
                 queryCollection.Add("search_string", searchString);
             }
@@ -172,6 +173,10 @@ namespace Jackett.Indexers
                 {
                     return releases.ToArray();
                 }
+
+                // return empty results in case of invalid imdb ID, see issue #1486
+                if (errorCode == 10) // Cant find imdb in database. Are you sure this imdb exists?
+                    return releases;
 
                 if (errorCode > 0) // too many requests per second
                 {

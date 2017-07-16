@@ -15,7 +15,7 @@ using System.Globalization;
 
 namespace Jackett.Indexers
 {
-    public class Hardbay : BaseIndexer, IIndexer
+    public class Hardbay : BaseWebIndexer
     {
         private string SearchUrl { get { return SiteLink + "api/v1/torrents"; } }
         private string LoginUrl { get { return SiteLink + "api/v1/auth"; } }
@@ -26,12 +26,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public Hardbay(IIndexerManagerService i, Logger l, IWebClient w, IProtectionService ps)
+        public Hardbay(IIndexerConfigurationService configService, IWebClient w, Logger l, IProtectionService ps)
             : base(name: "Hardbay",
                 description: null,
                 link: "https://hardbay.club/",
                 caps: new TorznabCapabilities(),
-                manager: i,
+                configService: configService,
                 client: w,
                 logger: l,
                 p: ps,
@@ -45,7 +45,7 @@ namespace Jackett.Indexers
             AddCategoryMapping(2, TorznabCatType.AudioLossless);
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var queryCollection = new NameValueCollection();
@@ -63,7 +63,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             List<ReleaseInfo> releases = new List<ReleaseInfo>();
             var queryCollection = new NameValueCollection();

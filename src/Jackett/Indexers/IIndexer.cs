@@ -37,15 +37,15 @@ namespace Jackett.Indexers
         void LoadFromSavedConfiguration(JToken jsonConfig);
         void SaveConfig();
 
-        Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query);
+        void Unconfigure();
 
-        IEnumerable<ReleaseInfo> FilterResults(TorznabQuery query, IEnumerable<ReleaseInfo> input);
-
-        Task<byte[]> Download(Uri link);
-
-        IEnumerable<ReleaseInfo> CleanLinks(IEnumerable<ReleaseInfo> releases);
-        Uri UncleanLink(Uri link);
+        Task<IEnumerable<ReleaseInfo>> ResultsForQuery(TorznabQuery query);
 
         bool CanHandleQuery(TorznabQuery query);
+    }
+
+    public interface IWebIndexer : IIndexer
+    {
+        Task<byte[]> Download(Uri link);
     }
 }

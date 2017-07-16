@@ -16,7 +16,7 @@ using System.Web;
 
 namespace Jackett.Indexers
 {
-    public class Demonoid : BaseIndexer, IIndexer
+    public class Demonoid : BaseWebIndexer
     {
         private string LoginUrl { get { return SiteLink + "account_handler.php"; } }
         private string SearchUrl { get { return SiteLink + "files/?category={0}&subcategory=All&quality=All&seeded=2&to=1&query={1}&external=2"; } }
@@ -27,12 +27,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public Demonoid(IIndexerManagerService i, Logger l, IWebClient wc, IProtectionService ps)
+        public Demonoid(IIndexerConfigurationService configService, IWebClient wc, Logger l, IProtectionService ps)
             : base(name: "Demonoid",
                 description: "Demonoid",
                 link: "https://www.demonoid.pw/",
                 caps: TorznabUtil.CreateDefaultTorznabTVCaps(),
-                manager: i,
+                configService: configService,
                 client: wc,
                 logger: l,
                 p: ps,
@@ -56,7 +56,7 @@ namespace Jackett.Indexers
             AddCategoryMapping(3, TorznabCatType.TV, "TV");
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var pairs = new Dictionary<string, string> {
@@ -77,7 +77,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var trackerCats = MapTorznabCapsToTrackers(query);

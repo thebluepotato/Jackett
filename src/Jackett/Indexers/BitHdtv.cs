@@ -19,28 +19,29 @@ using System.Collections.Specialized;
 
 namespace Jackett.Indexers
 {
-    public class BitHdtv : BaseIndexer, IIndexer
+    public class BitHdtv : BaseWebIndexer
     {
-        private string LoginUrl { get { return SiteLink + "takelogin.php"; } }
+        private string LoginUrl { get { return SiteLink + "login.php"; } }
+        private string TakeLoginUrl { get { return SiteLink + "takelogin.php"; } }
         private string SearchUrl { get { return SiteLink + "torrents.php?"; } }
         private string DownloadUrl { get { return SiteLink + "download.php?id={0}"; } }
 
-        new ConfigurationDataBasicLogin configData
+        new ConfigurationDataRecaptchaLogin configData
         {
-            get { return (ConfigurationDataBasicLogin)base.configData; }
+            get { return (ConfigurationDataRecaptchaLogin)base.configData; }
             set { base.configData = value; }
         }
 
-        public BitHdtv(IIndexerManagerService i, Logger l, IWebClient w, IProtectionService ps)
+        public BitHdtv(IIndexerConfigurationService configService, IWebClient w, Logger l, IProtectionService ps)
             : base(name: "BIT-HDTV",
                 description: "Home of high definition invites",
                 link: "https://www.bit-hdtv.com/",
                 caps: new TorznabCapabilities(),
-                manager: i,
+                configService: configService,
                 client: w,
                 logger: l,
                 p: ps,
-                configData: new ConfigurationDataBasicLogin())
+                configData: new ConfigurationDataRecaptchaLogin())
         {
             Encoding = Encoding.GetEncoding("iso-8859-1");
             Language = "en-us";
@@ -58,16 +59,52 @@ namespace Jackett.Indexers
             AddCategoryMapping(11, TorznabCatType.XXX); // XXX
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<ConfigurationData> GetConfigurationForSetup()
+        {
+            var loginPage = await RequestStringWithCookies(LoginUrl, configData.CookieHeader.Value);
+            CQ cq = loginPage.Content;
+            string recaptchaSiteKey = cq.Find(".g-recaptcha").Attr("data-sitekey");
+            var result = this.configData;
+            result.CookieHeader.Value = loginPage.Cookies;
+            result.Captcha.SiteKey = recaptchaSiteKey;
+            result.Captcha.Version = "2";
+            return result;
+        }
+
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
 
             var pairs = new Dictionary<string, string> {
                 { "username", configData.Username.Value },
-                { "password", configData.Password.Value }
+                { "password", configData.Password.Value },
+                { "g-recaptcha-response", configData.Captcha.Value },
             };
 
-            var response = await RequestLoginAndFollowRedirect(LoginUrl, pairs, null, true, null, SiteLink);
+            if (!string.IsNullOrWhiteSpace(configData.Captcha.Cookie))
+            {
+                // Cookie was manually supplied
+                CookieHeader = configData.Captcha.Cookie;
+                try
+                {
+                    var results = await PerformQuery(new TorznabQuery());
+                    if (!results.Any())
+                    {
+                        throw new Exception("Your cookie did not work");
+                    }
+
+                    IsConfigured = true;
+                    SaveConfig();
+                    return IndexerConfigurationStatus.Completed;
+                }
+                catch (Exception e)
+                {
+                    IsConfigured = false;
+                    throw new Exception("Your cookie did not work: " + e.Message);
+                }
+            }
+
+            var response = await RequestLoginAndFollowRedirect(TakeLoginUrl, pairs, null, true, null, SiteLink);
             await ConfigureIfOK(response.Cookies, response.Content != null && response.Content.Contains("logout.php"), () =>
             {
                 CQ dom = response.Content;
@@ -80,7 +117,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var searchString = query.GetQueryString();
@@ -133,7 +170,7 @@ namespace Jackett.Indexers
                             continue;
 
                         var dateString = qRow.Children().ElementAt(5).Cq().Text().Trim();
-                        var pubDate = DateTime.ParseExact(dateString, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+                        var pubDate = DateTime.ParseExact(dateString, "yyyy-MM-ddHH:mm:ss", CultureInfo.InvariantCulture);
                         release.PublishDate = DateTime.SpecifyKind(pubDate, DateTimeKind.Local);
 
                         var sizeStr = qRow.Children().ElementAt(6).Cq().Text();

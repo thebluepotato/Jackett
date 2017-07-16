@@ -19,7 +19,7 @@ using Jackett.Models.IndexerConfig;
 
 namespace Jackett.Indexers
 {
-    public class TorrentBytes : BaseIndexer, IIndexer
+    public class TorrentBytes : BaseWebIndexer
     {
         private string BrowseUrl { get { return SiteLink + "browse.php"; } }
         private string LoginUrl { get { return SiteLink + "takelogin.php"; } }
@@ -30,12 +30,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public TorrentBytes(IIndexerManagerService i, IWebClient wc, Logger l, IProtectionService ps)
+        public TorrentBytes(IIndexerConfigurationService configService, IWebClient wc, Logger l, IProtectionService ps)
             : base(name: "TorrentBytes",
                 description: "A decade of torrentbytes",
                 link: "https://www.torrentbytes.net/",
                 caps: TorznabUtil.CreateDefaultTorznabTVCaps(),
-                manager: i,
+                configService: configService,
                 client: wc,
                 logger: l,
                 p: ps,
@@ -74,7 +74,7 @@ namespace Jackett.Indexers
             AddCategoryMapping(24, TorznabCatType.XXXImageset);
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var pairs = new Dictionary<string, string> {
@@ -99,7 +99,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var searchString = query.GetQueryString();

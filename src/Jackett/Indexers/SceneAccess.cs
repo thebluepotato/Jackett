@@ -17,7 +17,7 @@ using System.Web;
 
 namespace Jackett.Indexers
 {
-    class SceneAccess : BaseIndexer, IIndexer
+    class SceneAccess : BaseWebIndexer
     {
         private string LoginUrl { get { return SiteLink + "login"; } }
         private string SearchUrl { get { return SiteLink + "all?search={0}&method=2"; } }
@@ -28,12 +28,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public SceneAccess(IIndexerManagerService i, IWebClient c, Logger l, IProtectionService ps)
+        public SceneAccess(IIndexerConfigurationService configService, IWebClient c, Logger l, IProtectionService ps)
             : base(name: "SceneAccess",
                 description: "Your gateway to the scene",
                 link: "https://sceneaccess.eu/",
                 caps: TorznabUtil.CreateDefaultTorznabTVCaps(),
-                manager: i,
+                configService: configService,
                 client: c,
                 logger: l,
                 p: ps,
@@ -91,7 +91,7 @@ namespace Jackett.Indexers
 
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
 
@@ -113,7 +113,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var results = await RequestStringWithCookiesAndRetry(string.Format(SearchUrl, HttpUtility.UrlEncode(query.GetQueryString())));

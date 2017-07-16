@@ -20,7 +20,7 @@ using System.Threading;
 
 namespace Jackett.Indexers
 {
-    public class Fuzer : BaseIndexer, IIndexer
+    public class Fuzer : BaseWebIndexer
     {
         private string SearchUrl { get { return SiteLink + "index.php?name=torrents&"; } }
         private string LoginUrl { get { return SiteLink + "login.php"; } }
@@ -32,11 +32,11 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public Fuzer(IIndexerManagerService i, Logger l, IWebClient w, IProtectionService ps)
+        public Fuzer(IIndexerConfigurationService configService, IWebClient w, Logger l, IProtectionService ps)
             : base(name: "Fuzer",
                 description: "Fuzer is a private torrent website with israeli torrents.",
                 link: "https://fuzer.me/",
-                manager: i,
+                configService: configService,
                 client: w,
                 logger: l,
                 p: ps,
@@ -90,7 +90,7 @@ namespace Jackett.Indexers
             AddMultiCategoryMapping(TorznabCatType.XXX, 16);
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var loginPage = await RequestStringWithCookies(LoginUrl, string.Empty);
@@ -116,7 +116,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var results = await performRegularQuery(query);
             if (results.Count() == 0)

@@ -17,7 +17,7 @@ using System.Text.RegularExpressions;
 
 namespace Jackett.Indexers
 {
-    public class HouseOfTorrents : BaseIndexer, IIndexer
+    public class HouseOfTorrents : BaseWebIndexer
     {
         private string SearchUrl { get { return SiteLink + "browse.php"; } }
         private string LoginUrl { get { return SiteLink + "takelogin.php"; } }
@@ -29,12 +29,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public HouseOfTorrents(IIndexerManagerService i, Logger l, IWebClient w, IProtectionService ps)
+        public HouseOfTorrents(IIndexerConfigurationService configService, IWebClient w, Logger l, IProtectionService ps)
             : base(name: "House-of-Torrents",
                 description: "A general tracker",
                 link: "https://houseoftorrents.club/",
                 caps: new TorznabCapabilities(),
-                manager: i,
+                configService: configService,
                 client: w,
                 logger: l,
                 p: ps,
@@ -97,7 +97,7 @@ namespace Jackett.Indexers
             AddCategoryMapping(81, TorznabCatType.XXXPacks); // XXX/Pack
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
 
@@ -127,7 +127,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             List<ReleaseInfo> releases = new List<ReleaseInfo>();
 

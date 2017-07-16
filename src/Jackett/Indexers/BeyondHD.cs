@@ -16,7 +16,7 @@ using System.Text;
 
 namespace Jackett.Indexers
 {
-    public class BeyondHD : BaseIndexer, IIndexer
+    public class BeyondHD : BaseWebIndexer
     {
         private string SearchUrl { get { return SiteLink + "browse.php?searchin=title&incldead=0&"; } }
 
@@ -26,12 +26,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public BeyondHD(IIndexerManagerService i, Logger l, IWebClient w, IProtectionService ps)
+        public BeyondHD(IIndexerConfigurationService configService, IWebClient w, Logger l, IProtectionService ps)
             : base(name: "BeyondHD",
                 description: "Without BeyondHD, your HDTV is just a TV",
                 link: "https://beyond-hd.me/",
                 caps: new TorznabCapabilities(),
-                manager: i,
+                configService: configService,
                 client: w,
                 logger: l,
                 p: ps,
@@ -85,7 +85,7 @@ namespace Jackett.Indexers
 
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             
@@ -98,7 +98,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             List<ReleaseInfo> releases = new List<ReleaseInfo>();
 

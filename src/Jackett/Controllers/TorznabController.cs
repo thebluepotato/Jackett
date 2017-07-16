@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using System.Xml.Linq;
+using Jackett.Indexers;
 
 namespace Jackett.Controllers
 {
@@ -57,7 +58,7 @@ namespace Jackett.Controllers
         {
             var indexer = indexerService.GetIndexer(indexerID);
             var torznabQuery = TorznabQuery.FromHttpQuery(HttpUtility.ParseQueryString(Request.RequestUri.Query));
-           
+
             if (string.Equals(torznabQuery.QueryType, "caps", StringComparison.InvariantCultureIgnoreCase))
             {
                 return new HttpResponseMessage()
@@ -112,37 +113,37 @@ namespace Jackett.Controllers
                 }
             }
 
-            var releases = await indexer.PerformQuery(torznabQuery);
-            releases = indexer.CleanLinks(releases);
+            var releases = await indexer.ResultsForQuery(torznabQuery);
 
             // Some trackers do not keep their clocks up to date and can be ~20 minutes out!
-            foreach (var release in releases)
+            foreach (var release in releases.Where(r => r.PublishDate > DateTime.Now))
             {
-                if (release.PublishDate > DateTime.Now)
-                    release.PublishDate = DateTime.Now;
+                release.PublishDate = DateTime.Now;
             }
 
             // Some trackers do not support multiple category filtering so filter the releases that match manually.
-            var filteredReleases = releases = indexer.FilterResults(torznabQuery, releases); 
             int? newItemCount = null;
 
             // Cache non query results
             if (string.IsNullOrEmpty(torznabQuery.SanitizedSearchTerm))
             {
-                newItemCount = cacheService.GetNewItemCount(indexer, filteredReleases);
+                newItemCount = cacheService.GetNewItemCount(indexer, releases);
                 cacheService.CacheRssResults(indexer, releases);
             }
 
             // Log info
             var logBuilder = new StringBuilder();
-            if (newItemCount != null)  {
+            if (newItemCount != null)
+            {
                 logBuilder.AppendFormat(string.Format("Found {0} ({1} new) releases from {2}", releases.Count(), newItemCount, indexer.DisplayName));
             }
-            else {
+            else
+            {
                 logBuilder.AppendFormat(string.Format("Found {0} releases from {1}", releases.Count(), indexer.DisplayName));
             }
 
-            if (!string.IsNullOrWhiteSpace(torznabQuery.SanitizedSearchTerm)) { 
+            if (!string.IsNullOrWhiteSpace(torznabQuery.SanitizedSearchTerm))
+            {
                 logBuilder.AppendFormat(" for: {0}", torznabQuery.GetQueryString());
             }
 
@@ -161,10 +162,10 @@ namespace Jackett.Controllers
             });
 
 
-            foreach(var result in releases)
+            foreach (var result in releases)
             {
                 var clone = Mapper.Map<ReleaseInfo>(result);
-                clone.Link = serverService.ConvertToProxyLink(clone.Link, serverUrl, indexerID, "dl", result.Title + ".torrent");
+                clone.Link = serverService.ConvertToProxyLink(clone.Link, serverUrl, result.Origin.ID, "dl", result.Title + ".torrent");
                 resultPage.Releases.Add(clone);
             }
 

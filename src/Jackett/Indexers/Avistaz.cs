@@ -18,13 +18,13 @@ using Jackett.Models.IndexerConfig;
 
 namespace Jackett.Indexers
 {
-    public class Avistaz : AvistazTracker, IIndexer
+    public class Avistaz : AvistazTracker
     {
-        public Avistaz(IIndexerManagerService indexerManager, IWebClient webClient, Logger logger, IProtectionService protectionService)
+        public Avistaz(IIndexerConfigurationService configService, IWebClient webClient, Logger logger, IProtectionService protectionService)
             : base(name: "Avistaz",
                 desc: "Aka AsiaTorrents",
                 link: "https://avistaz.to/",
-                indexerManager: indexerManager,
+                configService: configService,
                 logger: logger,
                 protectionService: protectionService,
                 webClient: webClient

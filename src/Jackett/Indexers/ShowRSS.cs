@@ -15,7 +15,7 @@ using Jackett.Models.IndexerConfig;
 
 namespace Jackett.Indexers
 {
-    public class ShowRSS : BaseIndexer, IIndexer
+    public class ShowRSS : BaseWebIndexer
     {
         private string SearchAllUrl { get { return SiteLink + "other/all.rss"; } }
 
@@ -25,12 +25,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public ShowRSS(IIndexerManagerService i, Logger l, IWebClient wc, IProtectionService ps)
+        public ShowRSS(IIndexerConfigurationService configService, IWebClient wc, Logger l, IProtectionService ps)
             : base(name: "ShowRSS",
                 description: "showRSS is a service that allows you to keep track of your favorite TV shows",
                 link: "http://showrss.info/",
                 caps: TorznabUtil.CreateDefaultTorznabTVCaps(),
-                manager: i,
+                configService: configService,
                 client: wc,
                 logger: l,
                 p: ps,
@@ -41,7 +41,7 @@ namespace Jackett.Indexers
             Type = "public";
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             configData.LoadValuesFromJson(configJson);
             var releases = await PerformQuery(new TorznabQuery());
@@ -59,7 +59,7 @@ namespace Jackett.Indexers
             throw new NotImplementedException();
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var episodeSearchUrl = string.Format(SearchAllUrl);

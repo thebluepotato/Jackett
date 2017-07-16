@@ -205,7 +205,7 @@ namespace Jackett.Controllers
                     baseIndexer.ResetBaseConfig();
                 if (ex is ExceptionWithConfigData)
                 {
-                    jsonReply["config"] = ((ExceptionWithConfigData)ex).ConfigData.ToJson(null,false);
+                    jsonReply["config"] = ((ExceptionWithConfigData)ex).ConfigData.ToJson(null, false);
                 }
                 else
                 {
@@ -332,7 +332,7 @@ namespace Jackett.Controllers
                 cfg["password"] = string.IsNullOrEmpty(serverService.Config.AdminPassword) ? string.Empty : serverService.Config.AdminPassword.Substring(0, 10);
                 cfg["logging"] = Startup.TracingEnabled;
                 cfg["basepathoverride"] = serverService.Config.BasePathOverride;
-               
+                cfg["omdbkey"] = serverService.Config.OmdbApiKey;
 
                 jsonReply["config"] = cfg;
                 jsonReply["app_version"] = config.GetVersion();
@@ -364,6 +364,7 @@ namespace Jackett.Controllers
                 bool preRelease = (bool)postData["prerelease"];
                 bool logging = (bool)postData["logging"];
                 string basePathOverride = (string)postData["basepathoverride"];
+                string omdbApiKey = (string)postData["omdbkey"];
 
                 Engine.Server.Config.UpdateDisabled = updateDisabled;
                 Engine.Server.Config.UpdatePrerelease = preRelease;
@@ -373,6 +374,13 @@ namespace Jackett.Controllers
 
                 Engine.SetLogLevel(logging ? LogLevel.Debug : LogLevel.Info);
                 Startup.TracingEnabled = logging;
+
+                if (omdbApiKey != Engine.Server.Config.OmdbApiKey)
+                {
+                    Engine.Server.Config.OmdbApiKey = omdbApiKey;
+                    // HACK
+                    indexerService.InitAggregateIndexer();
+                }
 
                 if (port != Engine.Server.Config.Port || external != Engine.Server.Config.AllowExternal)
                 {
@@ -423,7 +431,7 @@ namespace Jackett.Controllers
                     Engine.Server.Start();
                 })).Start();
                 }
-                
+
                 if (saveDir != Engine.Server.Config.BlackholeDir)
                 {
                     if (!string.IsNullOrEmpty(saveDir))
@@ -467,9 +475,10 @@ namespace Jackett.Controllers
             foreach (var result in results)
             {
                 var link = result.Link;
-                result.Link = serverService.ConvertToProxyLink(link, serverUrl, result.TrackerId, "dl", result.Title + ".torrent");
+                var file = StringUtil.MakeValidFileName(result.Title, '_', false) + ".torrent";
+                result.Link = serverService.ConvertToProxyLink(link, serverUrl, result.TrackerId, "dl", file);
                 if (result.Link != null && result.Link.Scheme != "magnet" && !string.IsNullOrWhiteSpace(Engine.Server.Config.BlackholeDir))
-                    result.BlackholeLink = serverService.ConvertToProxyLink(link, serverUrl, result.TrackerId, "bh", string.Empty);
+                    result.BlackholeLink = serverService.ConvertToProxyLink(link, serverUrl, result.TrackerId, "bh", file);
 
             }
         }
@@ -490,7 +499,7 @@ namespace Jackett.Controllers
 
             var queryStr = value.Query;
             if (queryStr != null)
-            { 
+            {
                 var seasonMatch = Regex.Match(queryStr, @"S(\d{2,4})");
                 if (seasonMatch.Success)
                 {
@@ -498,7 +507,7 @@ namespace Jackett.Controllers
                     queryStr = queryStr.Remove(seasonMatch.Index, seasonMatch.Length);
                 }
 
-                var episodeMatch = Regex.Match(queryStr, @"E(\d{2,4})");
+                var episodeMatch = Regex.Match(queryStr, @"E(\d{2,4}[A-Za-z]?)");
                 if (episodeMatch.Success)
                 {
                     stringQuery.Episode = episodeMatch.Groups[1].Value;
@@ -506,7 +515,7 @@ namespace Jackett.Controllers
                 }
                 queryStr = queryStr.Trim();
             }
-        
+
 
             stringQuery.SearchTerm = queryStr;
             stringQuery.Categories = value.Category == 0 ? new int[0] : new int[1] { value.Category };
@@ -547,10 +556,8 @@ namespace Jackett.Controllers
                     if (imdbQuery != null && indexer.TorznabCaps.SupportsImdbSearch)
                         query = imdbQuery;
 
-                    var searchResults = indexer.PerformQuery(query).Result;
-                    searchResults = indexer.CleanLinks(searchResults);
+                    var searchResults = indexer.ResultsForQuery(query).Result;
                     cacheService.CacheRssResults(indexer, searchResults);
-                    searchResults = indexer.FilterResults(query, searchResults);
 
                     foreach (var result in searchResults)
                     {

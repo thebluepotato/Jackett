@@ -185,6 +185,8 @@
     <Compile Include="Indexers\Hardbay.cs" />
     <Compile Include="Indexers\Rarbg.cs" />
     <Compile Include="Indexers\Psytorrents.cs" />
+    <Compile Include="Indexers\BrokenStones.cs" />
+    <Compile Include="Indexers\HDForever.cs" />
     <Compile Include="Indexers\ShowRSS.cs" />
     <Compile Include="Indexers\Superbits.cs" />
     <Compile Include="Indexers\rutracker.cs" />
@@ -240,7 +242,6 @@
     <Compile Include="Indexers\TehConnection.cs" />
     <Compile Include="Indexers\Hounddawgs.cs" />
     <Compile Include="Indexers\Shazbat.cs" />
-    <Compile Include="Indexers\Freshon.cs" />
     <Compile Include="Indexers\HDSpace.cs" />
     <Compile Include="Indexers\HDTorrents.cs" />
     <Compile Include="Indexers\IIndexer.cs" />
@@ -372,6 +373,13 @@
     <Compile Include="Indexers\BakaBT.cs" />
     <Compile Include="Indexers\Meta\MetaIndexers.cs" />
     <Compile Include="Indexers\Meta\BaseMetaIndexer.cs" />
+    <Compile Include="Indexers\Meta\Fallbacks.cs" />
+    <Compile Include="Indexers\Meta\ResultFilters.cs" />
+    <Compile Include="Services\ImdbResolver.cs" />
+    <Compile Include="Utils\Extensions.cs" />
+    <Compile Include="Utils\JsonUtil.cs" />
+    <Compile Include="Services\IndexerConfigurationService.cs" />
+    <Compile Include="Models\IndexerDefinition.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
@@ -418,6 +426,9 @@
     <None Include="Resources\test.xml" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\libs\handlebarsextend.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Definitions\**\*.yml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -565,8 +576,10 @@
     <MonoDevelop>
       <Properties>
         <Policies>
-          <TextStylePolicy inheritsSet="VisualStudio" inheritsScope="text/plain" scope="text/x-csharp" />
-          <CSharpFormattingPolicy IndentSwitchBody="True" IndentBlocksInsideExpressions="True" AnonymousMethodBraceStyle="NextLine" PropertyBraceStyle="NextLine" PropertyGetBraceStyle="NextLine" PropertySetBraceStyle="NextLine" EventBraceStyle="NextLine" EventAddBraceStyle="NextLine" EventRemoveBraceStyle="NextLine" StatementBraceStyle="NextLine" ElseNewLinePlacement="NewLine" CatchNewLinePlacement="NewLine" FinallyNewLinePlacement="NewLine" WhileNewLinePlacement="DoNotCare" ArrayInitializerWrapping="DoNotChange" ArrayInitializerBraceStyle="NextLine" BeforeMethodDeclarationParentheses="False" BeforeMethodCallParentheses="False" BeforeConstructorDeclarationParentheses="False" NewLineBeforeConstructorInitializerColon="NewLine" NewLineAfterConstructorInitializerColon="SameLine" BeforeDelegateDeclarationParentheses="False" NewParentheses="False" SpacesBeforeBrackets="False" inheritsSet="Mono" inheritsScope="text/x-csharp" scope="text/x-csharp" />
+          <TextStylePolicy TabWidth="4" IndentWidth="4" RemoveTrailingWhitespace="True" NoTabsAfterNonTabs="False" EolMarker="Native" FileWidth="80" TabsToSpaces="True" scope="text/plain">
+            <inheritsSet />
+            <inheritsScope />
+          </TextStylePolicy>
         </Policies>
       </Properties>
     </MonoDevelop>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Globalization;
@@ -18,7 +18,7 @@ using NLog;
 namespace Jackett.Indexers
 {
     // ReSharper disable once InconsistentNaming
-    public class GimmePeers : BaseIndexer, IIndexer
+    public class GimmePeers : BaseWebIndexer
     {
         private string BrowseUrl => SiteLink + "browse.php";
         private string LoginUrl => SiteLink + "takelogin.php";
@@ -29,12 +29,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public GimmePeers(IIndexerManagerService i, IWebClient wc, Logger l, IProtectionService ps)
+        public GimmePeers(IIndexerConfigurationService configService, IWebClient wc, Logger l, IProtectionService ps)
             : base(name: "GimmePeers",
                 description: "Formerly ILT",
                 link: "https://www.gimmepeers.com/",
                 caps: new TorznabCapabilities(),
-                manager: i,
+                configService: configService,
                 client: wc,
                 logger: l,
                 p: ps,
@@ -71,7 +71,7 @@ namespace Jackett.Indexers
             AddCategoryMapping(19, TorznabCatType.Movies);
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var pairs = new Dictionary<string, string> {
@@ -94,7 +94,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var searchString = query.GetQueryString();
@@ -132,7 +132,7 @@ namespace Jackett.Indexers
             {
                 CQ dom = results;
 
-                var rows = dom[".koptekst tr"];
+                var rows = dom[".browsetable tr"]; //the class for the table changed
                 foreach (var row in rows.Skip(1))
                 {
                     var release = new ReleaseInfo();
@@ -159,13 +159,13 @@ namespace Jackett.Indexers
                     var qLink = row.Cq().Find("td:eq(2) a").First();
                     release.Link = new Uri(SiteLink + qLink.Attr("href"));
 
-                    var added = row.Cq().Find("td:eq(7)").First().Text().Trim();
+                    var added = row.Cq().Find("td:eq(6)").First().Text().Trim(); //column changed from 7 to 6
                     var date = added.Substring(0, 10);
-                    var time = added.Substring(12, 8);
+                    var time = added.Substring(11, 8); //date layout wasn't quite right
                     var dateTime = date + time;
                     release.PublishDate = DateTime.ParseExact(dateTime, "yyyy-MM-ddHH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal).ToLocalTime();
 
-                    var sizeStr = row.Cq().Find("td:eq(8)").First().Text().Trim();
+                    var sizeStr = row.Cq().Find("td:eq(5)").First().Text().Trim(); //size column moved from 8 to 5
                     release.Size = ReleaseInfo.GetBytes(sizeStr);
 
                     release.Seeders = ParseUtil.CoerceInt(row.Cq().Find("td:eq(10)").First().Text().Trim());

@@ -18,7 +18,7 @@ using Jackett.Models.IndexerConfig;
 
 namespace Jackett.Indexers
 {
-    public abstract class AvistazTracker : BaseIndexer
+    public abstract class AvistazTracker : BaseWebIndexer
     {
         private string LoginUrl { get { return SiteLink + "auth/login"; } }
         private string SearchUrl { get { return SiteLink + "torrents?in=1&type={0}&search={1}"; } }
@@ -29,12 +29,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public AvistazTracker(IIndexerManagerService indexerManager, IWebClient webClient, Logger logger, IProtectionService protectionService, string name, string desc, string link)
+        public AvistazTracker(IIndexerConfigurationService configService, IWebClient webClient, Logger logger, IProtectionService protectionService, string name, string desc, string link)
             : base(name: name,
                 description: desc,
                 link: link,
                 caps: TorznabUtil.CreateDefaultTorznabTVCaps(),
-                manager: indexerManager,
+                configService: configService,
                 client: webClient,
                 logger: logger,
                 p: protectionService,
@@ -51,7 +51,7 @@ namespace Jackett.Indexers
             AddCategoryMapping(3, TorznabCatType.Audio);
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var loginPage = await RequestStringWithCookies(LoginUrl, string.Empty);
@@ -75,7 +75,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
 

@@ -1,4 +1,4 @@
-using CsQuery;
+﻿using CsQuery;
 using Jackett.Models;
 using Jackett.Services;
 using Jackett.Utils;
@@ -16,7 +16,7 @@ using System.Collections.Specialized;
 
 namespace Jackett.Indexers
 {
-    public class SpeedCD : BaseIndexer, IIndexer
+    public class SpeedCD : BaseWebIndexer
     {
         private string LoginUrl { get { return SiteLink + "takelogin.php"; } }
         private string SearchUrl { get { return SiteLink + "browse.php"; } }
@@ -27,12 +27,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public SpeedCD(IIndexerManagerService i, Logger l, IWebClient wc, IProtectionService ps)
+        public SpeedCD(IIndexerConfigurationService configService, IWebClient wc, Logger l, IProtectionService ps)
             : base(name: "Speed.cd",
                 description: "Your home now!",
                 link: "https://speed.cd/",
                 caps: new TorznabCapabilities(),
-                manager: i,
+                configService: configService,
                 client: wc,
                 logger: l,
                 p: ps,
@@ -75,7 +75,7 @@ namespace Jackett.Indexers
             AddCategoryMapping("29", TorznabCatType.AudioVideo);
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
 
@@ -101,7 +101,7 @@ namespace Jackett.Indexers
             });
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
 

@@ -16,7 +16,7 @@ using AngleSharp.Parser.Html;
 
 namespace Jackett.Indexers
 {
-    public class HD4Free : BaseIndexer, IIndexer
+    public class HD4Free : BaseWebIndexer
     {
         private string SearchUrl { get { return SiteLink + "ajax/initial_recall.php"; } }
         private string LoginUrl { get { return SiteLink + "login.php"; } }
@@ -28,12 +28,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public HD4Free(IIndexerManagerService i, Logger l, IWebClient w, IProtectionService ps)
+        public HD4Free(IIndexerConfigurationService configService, IWebClient w, Logger l, IProtectionService ps)
             : base(name: "HD4Free",
                 description: "A HD trackers",
                 link: "https://hd4free.xyz/",
                 caps: new TorznabCapabilities(),
-                manager: i,
+                configService: configService,
                 client: w,
                 logger: l,
                 p: ps,
@@ -105,7 +105,7 @@ namespace Jackett.Indexers
             return result;
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var pairs = new Dictionary<string, string> {
@@ -154,7 +154,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             List<ReleaseInfo> releases = new List<ReleaseInfo>();
 

@@ -11,6 +11,8 @@ using Jackett.Utils.Clients;
 using AutoMapper;
 using Jackett.Models;
 using System.Reflection;
+using Jackett.Services;
+using Jackett.Indexers.Meta;
 
 namespace Jackett
 {
@@ -20,7 +22,22 @@ namespace Jackett
         {
             // Just register everything!
             var thisAssembly = typeof(JackettModule).Assembly;
-            builder.RegisterAssemblyTypes(thisAssembly).Except<IIndexer>().AsImplementedInterfaces().SingleInstance();
+            builder.RegisterAssemblyTypes(thisAssembly)
+                   .Except<IIndexer>()
+                   .Except<IImdbResolver>()
+                   .Except<OmdbResolver>()
+                   .Except<IFallbackStrategyProvider>()
+                   .Except<ImdbFallbackStrategyProvider>()
+                   .Except<IFallbackStrategy>()
+                   .Except<ImdbFallbackStrategy>()
+                   .Except<IResultFilterProvider>()
+                   .Except<ImdbTitleResultFilterProvider>()
+                   .Except<IResultFilter>()
+                   .Except<ImdbTitleResultFilterProvider>()
+                   .Except<BaseMetaIndexer>()
+                   .Except<AggregateIndexer>()
+                   .Except<CardigannIndexer>()
+                   .AsImplementedInterfaces().SingleInstance();
             builder.RegisterApiControllers(thisAssembly).InstancePerRequest();
             builder.RegisterType<HttpWebClient>();
 
@@ -40,20 +57,21 @@ namespace Jackett
                     builder.RegisterType<UnixLibCurlWebClient>().As<IWebClient>();
                     break;
                 case "automatic":
-                    default:
+                default:
                     if (System.Environment.OSVersion.Platform == PlatformID.Unix)
                     {
                         var usehttpclient = false;
-                        try { 
+                        try
+                        {
                             Type monotype = Type.GetType("Mono.Runtime");
                             if (monotype != null)
                             {
                                 MethodInfo displayName = monotype.GetMethod("GetDisplayName", BindingFlags.NonPublic | BindingFlags.Static);
                                 if (displayName != null)
-                                { 
+                                {
                                     var monoVersion = displayName.Invoke(null, null).ToString();
                                     var monoVersionO = new Version(monoVersion.Split(' ')[0]);
-                                    if (monoVersionO.Major >= 4 && monoVersionO.Minor >= 8)
+                                    if ((monoVersionO.Major >= 4 && monoVersionO.Minor >= 8) || monoVersionO.Major >= 5)
                                     {
                                         // check if btls is supported
                                         var monoSecurity = Assembly.Load("Mono.Security");
@@ -61,7 +79,7 @@ namespace Jackett
                                         if (monoTlsProviderFactory != null)
                                         {
                                             MethodInfo isProviderSupported = monoTlsProviderFactory.GetMethod("IsProviderSupported");
-                                            if(isProviderSupported != null)
+                                            if (isProviderSupported != null)
                                             {
                                                 var btlsSupported = (bool)isProviderSupported.Invoke(null, new string[] { "btls" });
                                                 if (btlsSupported)
@@ -95,13 +113,6 @@ namespace Jackett
                         builder.RegisterType<HttpWebClient>().As<IWebClient>();
                     }
                     break;
-            }
-
-            // Register indexers
-            var indexerTypes = thisAssembly.GetTypes().Where(p => typeof (IIndexer).IsAssignableFrom (p) && !p.IsInterface && !p.IsInNamespace("Jackett.Indexers.Meta"));
-            foreach (var indexer in indexerTypes)
-            {
-                builder.RegisterType(indexer).Named<IIndexer>(BaseIndexer.GetIndexerID(indexer));
             }
 
             Mapper.CreateMap<WebClientByteResult, WebClientStringResult>().ForMember(x => x.Content, opt => opt.Ignore()).AfterMap((be, str) =>

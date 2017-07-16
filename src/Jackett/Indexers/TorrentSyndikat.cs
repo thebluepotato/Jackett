@@ -17,7 +17,7 @@ using System.Text.RegularExpressions;
 
 namespace Jackett.Indexers
 {
-    public class TorrentSyndikat : BaseIndexer, IIndexer
+    public class TorrentSyndikat : BaseWebIndexer
     {
         private string SearchUrl { get { return SiteLink + "browse.php"; } }
         private string LoginUrl { get { return SiteLink + "eing2.php"; } }
@@ -30,12 +30,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public TorrentSyndikat(IIndexerManagerService i, Logger l, IWebClient w, IProtectionService ps)
+        public TorrentSyndikat(IIndexerConfigurationService configService, IWebClient w, Logger l, IProtectionService ps)
             : base(name: "Torrent-Syndikat",
                 description: "A German general tracker",
                 link: "https://torrent-syndikat.org/",
                 caps: new TorznabCapabilities(),
-                manager: i,
+                configService: configService,
                 client: w,
                 logger: l,
                 p: ps,
@@ -93,7 +93,7 @@ namespace Jackett.Indexers
             AddCategoryMapping(39, TorznabCatType.Other); // Misc / Bildung
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
 
@@ -118,7 +118,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             List<ReleaseInfo> releases = new List<ReleaseInfo>();
 
@@ -147,6 +147,13 @@ namespace Jackett.Indexers
             searchUrl += "?" + queryCollection.GetQueryString();
 
             var results = await RequestStringWithCookiesAndRetry(searchUrl);
+
+            if (results.IsRedirect)
+            {
+                await ApplyConfiguration(null);
+                results = await RequestStringWithCookiesAndRetry(searchUrl);
+            }
+
             try
             {
                 CQ dom = results.Content;

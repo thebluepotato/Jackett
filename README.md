@@ -20,6 +20,7 @@ Developer note: The software implements the [Torznab](https://github.com/Sonarr/
 
 ### Supported Public Trackers
  * Anidex
+ * cpasbien
  * EZTV
  * Horrible Subs
  * Il Corsaro Nero <!-- maintained by bonny1992 -->
@@ -27,6 +28,8 @@ Developer note: The software implements the [Torznab](https://github.com/Sonarr/
  * KickAssTorrent
  * KickAssTorrent (kat.how clone)
  * LimeTorrents
+ * Mania-Torrent
+ * NextTorrent
  * Nyaa.si
  * Nyaa-Pantsu
  * Nyoo
@@ -36,9 +39,10 @@ Developer note: The software implements the [Torznab](https://github.com/Sonarr/
  * The Pirate Bay
  * TNTVillage <!-- maintained by bonny1992 -->
  * Tokyo Toshokan
+ * Torrent Downloads
  * TorrentProject
  * Torrentz2
- 
+
 ### Supported Private Trackers
  * 2 Fast 4 You
  * 3D Torrents
@@ -57,6 +61,7 @@ Developer note: The software implements the [Torznab](https://github.com/Sonarr/
  * Audiobook Torrents
  * Awesome-HD
  * Avistaz
+ * B2S-Share
  * BakaBT  [![(invite needed)][inviteneeded]](#)
  * bB
  * Best Friends
@@ -71,7 +76,9 @@ Developer note: The software implements the [Torznab](https://github.com/Sonarr/
  * Bitspyder
  * Blu-bits
  * BlueBird
+ * Blutopia
  * BroadcastTheNet  [![(invite needed)][inviteneeded]](#)
+ * BrokenStones
  * BTNext
  * Carpathians
  * CHDBits
@@ -82,6 +89,7 @@ Developer note: The software implements the [Torznab](https://github.com/Sonarr/
  * CZTeam
  * DanishBits
  * DataScene
+ * Deildu
  * Demonoid
  * Diablo Torrent
  * DigitalHive
@@ -94,7 +102,6 @@ Developer note: The software implements the [Torznab](https://github.com/Sonarr/
  * FANO.IN
  * FileList
  * Freedom-HD
- * Freshon
  * FullMixMusic
  * FunFile
  * FunkyTorrents
@@ -107,10 +114,11 @@ Developer note: The software implements the [Torznab](https://github.com/Sonarr/
  * Gormogon
  * Greek Team
  * Hardbay
- * HD4Free
+ * HD-Forever
  * HD-Space
  * HD-Torrents
  * HD-Bits.com
+ * HD4Free
  * HDBits
  * HDChina
  * HDClub
@@ -137,13 +145,13 @@ Developer note: The software implements the [Torznab](https://github.com/Sonarr/
  * LosslessClub
  * M-Team - TP
  * Magico
- * Majomparádé 
+ * Majomparádé
+ * Manicomio Share
  * Mononoké-BT
  * MoreThanTV
  * MyAnonamouse
  * myAmity
  * MySpleen
- * Nachtwerk
  * NCore
  * Nebulance
  * NetHD
@@ -196,7 +204,6 @@ Developer note: The software implements the [Torznab](https://github.com/Sonarr/
  * TenYardTracker
  * Torrent Network
  * Torrent Sector Crew
- * Torrent411
  * Torrent9
  * TorrentBD
  * TorrentBytes
@@ -223,11 +230,14 @@ Developer note: The software implements the [Torznab](https://github.com/Sonarr/
  * x264
  * XSpeeds
  * Xthor
- * Xtreme Zone 
+ * Xtreme Zone
+ * YggTorrent
+ * Zamunda.net
+ * Zelka.org
  * Ztracker
 
 Trackers marked with  [![(invite needed)][inviteneeded]](#) have no active maintainer and are missing features or are broken. If you have an invite for them please send it to kaso1717 -at- gmail.com to get them fixed/improved.
- 
+
 ## Installation on Windows
 
 We recommend you install Jackett as a Windows service using the supplied installer. You may also download the zipped version if you would like to configure everything manually.
@@ -243,7 +253,7 @@ To get started with using the installer for Jackett, follow the steps below:
 
 When installed as a service the tray icon acts as a way to open/start/stop Jackett. If you opted to not install it as a service then Jackett will run its web server from the tray tool.
 
-Jackett can also be run from the command line if you would like to see log messages (Ensure the server isn't already running from the tray/service). This can be done by using "JackettConsole.exe" (for Command Prompt), found in the Jackett data folder: "%ProgramData%\Jackett". 
+Jackett can also be run from the command line if you would like to see log messages (Ensure the server isn't already running from the tray/service). This can be done by using "JackettConsole.exe" (for Command Prompt), found in the Jackett data folder: "%ProgramData%\Jackett".
 
 ## Installation on Linux
  1. Install [Mono 4](http://www.mono-project.com/download/#download-lin) or better (version 4.8 is recommended)
@@ -280,7 +290,12 @@ Jackett is available as beta package from [SynoCommuniy](https://synocommunity.c
 
 * __Unable to  connect to trackers with invalid SSL certificates__
 
-  You can disable certificate validation using the `--IgnoreSslErrors true` option but it's not recommended to use it as it enables Man-in-the-middle attacks on your connections.
+  If you're using mono this is often caused by missing ca-certificates.
+  Try reimporting the certificates in this case:
+
+  `wget -O - https://curl.haxx.se/ca/cacert.pem | cert-sync /dev/stdin`
+
+  As a option of last resort you can disable certificate validation using the `--IgnoreSslErrors true` option but it's not recommended to use it as it enables Man-in-the-middle attacks on your connections.
 
 *  __Enable logging__
 

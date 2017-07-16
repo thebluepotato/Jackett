@@ -22,7 +22,7 @@ using System.Xml.XPath;
 
 namespace Jackett.Indexers
 {
-    public class Shazbat : BaseIndexer, IIndexer
+    public class Shazbat : BaseWebIndexer
     {
         private string LoginUrl { get { return SiteLink + "login"; } }
         private string SearchUrl { get { return SiteLink + "search"; } }
@@ -36,14 +36,14 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public Shazbat(IIndexerManagerService i, IWebClient c, Logger l, IProtectionService ps)
+        public Shazbat(IIndexerConfigurationService configService, IWebClient c, Logger l, IProtectionService ps)
             : base(name: "Shazbat",
                 description: "Modern indexer",
                 link: "https://www.shazbat.tv/",
                 caps: new TorznabCapabilities(TorznabCatType.TV,
                                               TorznabCatType.TVHD,
                                               TorznabCatType.TVSD),
-                manager: i,
+                configService: configService,
                 client: c,
                 logger: l,
                 p: ps,
@@ -54,7 +54,7 @@ namespace Jackett.Indexers
             Type = "private";
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var pairs = new Dictionary<string, string> {
@@ -97,7 +97,7 @@ namespace Jackett.Indexers
             return response;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
 

@@ -17,7 +17,7 @@ using System.Collections.Specialized;
 
 namespace Jackett.Indexers
 {
-    class PiXELHD : BaseIndexer, IIndexer
+    class PiXELHD : BaseWebIndexer
     {
         string LoginUrl { get { return SiteLink + "login.php"; } }
         string BrowseUrl { get { return SiteLink + "torrents.php"; } }
@@ -32,12 +32,12 @@ namespace Jackett.Indexers
         string input_username = null;
         string input_password = null;
 
-        public PiXELHD(IIndexerManagerService indexerManager, IWebClient webClient, Logger logger, IProtectionService protectionService)
+        public PiXELHD(IIndexerConfigurationService configService, IWebClient webClient, Logger logger, IProtectionService protectionService)
             : base(name: "PiXELHD",
                 description: null,
                 link: "https://pixelhd.me/",
                 caps: new TorznabCapabilities(),
-                manager: indexerManager,
+                configService: configService,
                 logger: logger,
                 p: protectionService,
                 client: webClient,
@@ -86,7 +86,7 @@ namespace Jackett.Indexers
             return configData;
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             configData.LoadValuesFromJson(configJson);
 
@@ -113,7 +113,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var searchString = query.GetQueryString();

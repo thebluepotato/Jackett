@@ -6,13 +6,13 @@ using Jackett.Indexers.Abstract;
 
 namespace Jackett.Indexers
 {
-    public class notwhatcd : GazelleTracker, IIndexer
+    public class notwhatcd : GazelleTracker
     {
-        public notwhatcd(IIndexerManagerService indexerManager, IWebClient webClient, Logger logger, IProtectionService protectionService)
+        public notwhatcd(IIndexerConfigurationService configService, IWebClient webClient, Logger logger, IProtectionService protectionService)
             : base(name: "notwhat.cd",
                 desc: "A music tracker",
                 link: "https://notwhat.cd/",
-                indexerManager: indexerManager,
+                configService: configService,
                 logger: logger,
                 protectionService: protectionService,
                 webClient: webClient

@@ -21,7 +21,7 @@ using System.Text.RegularExpressions;
 
 namespace Jackett.Indexers
 {
-    public class FileList : BaseIndexer, IIndexer
+    public class FileList : BaseWebIndexer
     {
         string LoginUrl { get { return SiteLink + "takelogin.php"; } }
         string BrowseUrl { get { return SiteLink + "browse.php"; } }
@@ -32,12 +32,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public FileList(IIndexerManagerService i, IWebClient wc, Logger l, IProtectionService ps)
+        public FileList(IIndexerConfigurationService configService, IWebClient wc, Logger l, IProtectionService ps)
             : base(name: "FileList",
                 description: "The best Romanian site.",
                 link: "http://filelist.ro/",
                 caps: TorznabUtil.CreateDefaultTorznabTVCaps(),
-                manager: i,
+                configService: configService,
                 client: wc,
                 logger: l,
                 p: ps,
@@ -73,7 +73,7 @@ namespace Jackett.Indexers
             AddCategoryMapping(7, TorznabCatType.XXX); //XXX
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var pairs = new Dictionary<string, string> {
@@ -91,7 +91,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var searchUrl = BrowseUrl;
@@ -122,6 +122,14 @@ namespace Jackett.Indexers
             searchUrl += "?" + queryCollection.GetQueryString();
 
             var response = await RequestStringWithCookiesAndRetry(searchUrl, null, BrowseUrl);
+            
+            // Occasionally the cookies become invalid, login again if that happens
+            if (response.IsRedirect)
+            {
+                await ApplyConfiguration(null);
+                response = await RequestStringWithCookiesAndRetry(searchUrl, null, BrowseUrl);
+            }
+
             var results = response.Content;
             try
             {

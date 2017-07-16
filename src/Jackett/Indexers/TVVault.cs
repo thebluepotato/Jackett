@@ -15,7 +15,7 @@ using System.Text.RegularExpressions;
 
 namespace Jackett.Indexers
 {
-    public class TVVault : BaseIndexer, IIndexer
+    public class TVVault : BaseWebIndexer
     {
         string LoginUrl { get { return SiteLink + "login.php"; } }
         string BrowseUrl { get { return SiteLink + "torrents.php"; } }
@@ -26,12 +26,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public TVVault(IIndexerManagerService i, IWebClient wc, Logger l, IProtectionService ps)
+        public TVVault(IIndexerConfigurationService configService, IWebClient wc, Logger l, IProtectionService ps)
             : base(name: "TV-Vault",
                    description: "A TV tracker for old shows.",
                    link: "https://tv-vault.me/",
                    caps: TorznabUtil.CreateDefaultTorznabTVCaps(),
-                   manager: i,
+                   configService: configService,
                    client: wc,
                    logger: l,
                    p: ps,
@@ -45,7 +45,7 @@ namespace Jackett.Indexers
             AddCategoryMapping(2, TorznabCatType.Movies);
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
 
@@ -74,7 +74,7 @@ namespace Jackett.Indexers
             return term.Trim();
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             

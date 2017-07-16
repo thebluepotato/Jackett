@@ -15,6 +15,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
+using Jackett.Indexers;
 
 namespace Jackett.Controllers
 {
@@ -38,7 +39,7 @@ namespace Jackett.Controllers
                 };
 
                 torznabQuery.ExpandCatsToSubCats();
-                    return torznabQuery.Categories;
+                return torznabQuery.Categories;
             }
         }
 
@@ -55,7 +56,7 @@ namespace Jackett.Controllers
         public async Task<HttpResponseMessage> Call(string indexerID, [FromUri]TorrentPotatoRequest request)
         {
             var indexer = indexerService.GetIndexer(indexerID);
-          
+
             var allowBadApiDueToDebug = false;
 #if DEBUG
             allowBadApiDueToDebug = Debugger.IsAttached;
@@ -73,33 +74,27 @@ namespace Jackett.Controllers
                 return Request.CreateResponse(HttpStatusCode.Forbidden, "This indexer is not configured.");
             }
 
-            if (!indexer.TorznabCaps.Categories.Select(c => c.ID).Any(i => MOVIE_CATS.Contains(i))){
+            if (!indexer.TorznabCaps.Categories.Select(c => c.ID).Any(i => MOVIE_CATS.Contains(i)))
+            {
                 logger.Warn(string.Format("Rejected a request to {0} which does not support searching for movies.", indexer.DisplayName));
                 return Request.CreateResponse(HttpStatusCode.Forbidden, "This indexer does not support movies.");
             }
 
             var year = 0;
 
-            if (string.IsNullOrWhiteSpace(request.search))
+            var omdbApiKey = serverService.Config.OmdbApiKey;
+            if (!request.imdbid.IsNullOrEmptyOrWhitespace() && !omdbApiKey.IsNullOrEmptyOrWhitespace())
             {
                 // We are searching by IMDB id so look up the name
-                var omdbapiRequest = new Utils.Clients.WebRequest("http://www.omdbapi.com/?type=movie&i=" + request.imdbid);
-                omdbapiRequest.Encoding = Encoding.UTF8;
-                var response = await webClient.GetString(omdbapiRequest);
-                if (response.Status == HttpStatusCode.OK)
-                {
-                    JObject result = JObject.Parse(response.Content);
-                    if (result["Title"] != null)
-                    {
-                        request.search = result["Title"].ToString();
-                        year = ParseUtil.CoerceInt(result["Year"].ToString());
-                    }
-                }
+                var resolver = new OmdbResolver(webClient, omdbApiKey.ToNonNull());
+                var movie = await resolver.MovieForId(request.imdbid.ToNonNull());
+                request.search = movie.Title;
+                year = ParseUtil.CoerceInt(movie.Year);
             }
 
             var torznabQuery = new TorznabQuery()
             {
-                ApiKey =  request.passkey,
+                ApiKey = request.passkey,
                 Categories = MOVIE_CATS,
                 SearchTerm = request.search,
                 ImdbID = request.imdbid,
@@ -109,10 +104,7 @@ namespace Jackett.Controllers
             IEnumerable<ReleaseInfo> releases = new List<ReleaseInfo>();
 
             if (!string.IsNullOrWhiteSpace(torznabQuery.SanitizedSearchTerm))
-            {
-                releases = await indexer.PerformQuery(torznabQuery);
-                releases = indexer.CleanLinks(releases);
-            }
+                releases = await indexer.ResultsForQuery(torznabQuery);
 
             // Cache non query results
             if (string.IsNullOrEmpty(torznabQuery.SanitizedSearchTerm))
@@ -120,7 +112,6 @@ namespace Jackett.Controllers
                 cacheService.CacheRssResults(indexer, releases);
             }
 
-            releases = indexer.FilterResults(torznabQuery, releases);
             var serverUrl = string.Format("{0}://{1}:{2}{3}", Request.RequestUri.Scheme, Request.RequestUri.Host, Request.RequestUri.Port, serverService.BasePath());
             var potatoResponse = new TorrentPotatoResponse();
 

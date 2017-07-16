@@ -19,7 +19,7 @@ using System.Collections.Specialized;
 
 namespace Jackett.Indexers
 {
-    public class HDTorrents : BaseIndexer, IIndexer
+    public class HDTorrents : BaseWebIndexer
     {
         private string SearchUrl { get { return SiteLink + "torrents.php?"; } }
         private string LoginUrl { get { return SiteLink + "login.php"; } }
@@ -32,11 +32,11 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public HDTorrents(IIndexerManagerService i, Logger l, IWebClient w, IProtectionService ps)
+        public HDTorrents(IIndexerConfigurationService configService, IWebClient w, Logger l, IProtectionService ps)
             : base(name: "HD-Torrents",
                 description: "HD-Torrents is a private torrent website with HD torrents and strict rules on their content.",
                 link: "https://hdts.ru/",// Of the accessible domains the .ru seems the most reliable.  https://hdts.ru | https://hd-torrents.org | https://hd-torrents.net | https://hd-torrents.me
-                manager: i,
+                configService: configService,
                 client: w,
                 logger: l,
                 p: ps,
@@ -79,7 +79,7 @@ namespace Jackett.Indexers
             AddCategoryMapping("67", TorznabCatType.Movies3D, "3D");
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
 
@@ -100,7 +100,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var searchurls = new List<string>();

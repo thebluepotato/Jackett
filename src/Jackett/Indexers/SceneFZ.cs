@@ -15,7 +15,7 @@ using Jackett.Models.IndexerConfig;
 
 namespace Jackett.Indexers
 {
-    public class SceneFZ : BaseIndexer, IIndexer
+    public class SceneFZ : BaseWebIndexer
     {
         string LoginUrl { get { return SiteLink + "takelogin.php"; } }
 
@@ -27,12 +27,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public SceneFZ(IIndexerManagerService i, IWebClient wc, Logger l, IProtectionService ps)
+        public SceneFZ(IIndexerConfigurationService configService, IWebClient wc, Logger l, IProtectionService ps)
             : base(name: "SceneFZ",
                    description: "Torrent tracker. Tracking over 50.000 torrent files.",
                    link: "http://scenefz.me/",
                    caps: TorznabUtil.CreateDefaultTorznabTVCaps(),
-                   manager: i,
+                   configService: configService,
                    client: wc,
                    logger: l,
                    p: ps,
@@ -92,7 +92,7 @@ namespace Jackett.Indexers
             AddCategoryMapping("scat34", TorznabCatType.Other); // Video
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var pairs = new Dictionary<string, string>
@@ -111,7 +111,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var searchUrl = BrowseUrl;

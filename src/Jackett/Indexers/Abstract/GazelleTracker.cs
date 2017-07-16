@@ -17,7 +17,7 @@ using System.Web;
 
 namespace Jackett.Indexers.Abstract
 {
-    public abstract class GazelleTracker : BaseIndexer
+    public abstract class GazelleTracker : BaseWebIndexer
     {
         protected string LoginUrl { get { return SiteLink + "login.php"; } }
         protected string APIUrl { get { return SiteLink + "ajax.php"; } }
@@ -30,12 +30,12 @@ namespace Jackett.Indexers.Abstract
             set { base.configData = value; }
         }
 
-        public GazelleTracker(IIndexerManagerService indexerManager, IWebClient webClient, Logger logger, IProtectionService protectionService, string name, string desc, string link)
+        public GazelleTracker(IIndexerConfigurationService configService, IWebClient webClient, Logger logger, IProtectionService protectionService, string name, string desc, string link)
             : base(name: name,
                 description: desc,
                 link: link,
                 caps: new TorznabCapabilities(),
-                manager: indexerManager,
+                configService: configService,
                 client: webClient,
                 logger: logger,
                 p: protectionService,
@@ -44,7 +44,7 @@ namespace Jackett.Indexers.Abstract
             Encoding = Encoding.GetEncoding("UTF-8");
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
             var pairs = new Dictionary<string, string> {
@@ -68,7 +68,7 @@ namespace Jackett.Indexers.Abstract
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var searchString = query.GetQueryString();
@@ -126,9 +126,9 @@ namespace Jackett.Indexers.Abstract
                     if (!string.IsNullOrEmpty(artist))
                         release.Title += artist + " - ";
                     release.Title += groupName;
-                    if (!string.IsNullOrEmpty(groupYear))
+                    if (!string.IsNullOrEmpty(groupYear) && groupYear != "0")
                         release.Title += " [" + groupYear + "]";
-                    if (!string.IsNullOrEmpty(releaseType))
+                    if (!string.IsNullOrEmpty(releaseType) && releaseType != "Unknown")
                         release.Title += " [" + releaseType + "]";
 
                     release.Description = "";
@@ -180,7 +180,7 @@ namespace Jackett.Indexers.Abstract
 
             var format = (string)torrent["format"];
             if (!string.IsNullOrEmpty(format))
-                flags.Add(format);
+                flags.Add(HttpUtility.HtmlDecode(format));
 
             var encoding = (string)torrent["encoding"];
             if (!string.IsNullOrEmpty(encoding))

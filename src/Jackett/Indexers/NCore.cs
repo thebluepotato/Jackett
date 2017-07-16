@@ -16,7 +16,7 @@ using System.Text.RegularExpressions;
 
 namespace Jackett.Indexers
 {
-    public class NCore : BaseIndexer, IIndexer
+    public class NCore : BaseWebIndexer
     {
         private string LoginUrl { get { return SiteLink + "login.php"; } }
         private string SearchUrl { get { return SiteLink + "torrents.php"; } }
@@ -28,12 +28,12 @@ namespace Jackett.Indexers
             set { base.configData = value; }
         }
 
-        public NCore(IIndexerManagerService i, IWebClient wc, Logger l, IProtectionService ps)
+        public NCore(IIndexerConfigurationService configService, IWebClient wc, Logger l, IProtectionService ps)
             : base(name: "nCore",
                 description: "A Hungarian private torrent site.",
                 link: "https://ncore.cc/",
                 caps: new TorznabCapabilities(),
-                manager: i,
+                configService: configService,
                 client: wc,
                 logger: l,
                 p: ps,
@@ -82,7 +82,7 @@ namespace Jackett.Indexers
             AddCategoryMapping("ebook", TorznabCatType.Books , "Könyv eBook/EN");
         }
 
-        public async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
+        public override async Task<IndexerConfigurationStatus> ApplyConfiguration(JToken configJson)
         {
             LoadValuesFromJson(configJson);
 
@@ -99,6 +99,11 @@ namespace Jackett.Indexers
                 { "submit", "Access!" }
             };
 
+            if (!string.IsNullOrEmpty(configData.TwoFactor.Value))
+            {
+                pairs.Add("2factor", configData.TwoFactor.Value);
+            }
+
             var result = await RequestLoginAndFollowRedirect(LoginUrl, pairs, loginPage.Cookies, true, referer: SiteLink);
             await ConfigureIfOK(result.Cookies, result.Content != null && result.Content.Contains("profile.php"), () =>
             {
@@ -112,7 +117,7 @@ namespace Jackett.Indexers
             return IndexerConfigurationStatus.RequiresTesting;
         }
 
-        public async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
+        protected override async Task<IEnumerable<ReleaseInfo>> PerformQuery(TorznabQuery query)
         {
             var releases = new List<ReleaseInfo>();
             var searchString = query.GetQueryString();
